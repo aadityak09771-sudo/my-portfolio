@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { FaGithub } from 'react-icons/fa6';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Projects() {
   const [filter, setFilter] = useState('All');
+  const [githubProjects, setGithubProjects] = useState([]);
   const categories = ['All', 'React', 'Full Stack', 'Internship'];
 
-  const projects = [
+  const staticProjects = [
     {
       title: 'Siksha Kendra',
       description: 'An educational platform built with React and modern UI. Features course management and interactive student portals.',
@@ -36,7 +37,34 @@ export default function Projects() {
     }
   ];
 
-  const filteredProjects = projects.filter(project => filter === 'All' || project.category === filter);
+  useEffect(() => {
+    // Dynamically fetch your public repositories from GitHub
+    fetch('https://api.github.com/users/aadityak09771-sudo/repos?sort=updated&per_page=9')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const fetchedRepos = data.map((repo) => ({
+            title: repo.name.replace(/-/g, ' '), // Format names like 'My-App' to 'My App'
+            description: repo.description || 'A project developed and pushed on GitHub.',
+            tech: repo.language ? [repo.language] : ['Open Source'],
+            category: 'All', // By default, adding GitHub repos to the 'All' tab
+            liveUrl: repo.homepage || repo.html_url,
+            githubUrl: repo.html_url,
+          }));
+
+          // Avoid duplicating projects we already added manually above
+          const manualTitles = staticProjects.map((p) => p.title.toLowerCase());
+          const newProjects = fetchedRepos.filter((repo) => !manualTitles.includes(repo.title.toLowerCase()));
+          
+          setGithubProjects(newProjects);
+        }
+      })
+      .catch((err) => console.error('Error fetching GitHub repos:', err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const allProjects = [...staticProjects, ...githubProjects];
+  const filteredProjects = allProjects.filter(project => filter === 'All' || project.category === filter);
 
   return (
     <section id="projects" className="py-24 px-6 max-w-6xl mx-auto bg-neutral-950/50 pt-28">
